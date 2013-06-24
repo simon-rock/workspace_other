@@ -14,6 +14,7 @@
 # g++ out
 
 # folder
+lib/
 bin/
 .deps/
 # msvc out
