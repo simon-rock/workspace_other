@@ -26,6 +26,7 @@ INCS	=
 #LIBS	= -L ../lib  -lsystools -ldb_access  -L/usr/lib64/mysql/ -lmysqlclient #depend error
 LIBS	= -L $(LIBDIR)
 OPTIONS	= -ftemplate-depth-100 -O2 -finline-functions -Wno-inline -Wall 
+COPTIONS	= -O2 -finline-functions -Wno-inline -Wall 
 CFLAGS	= $(INCS) $(LIBS) $(OPTIONS)
 
 # libs depend
@@ -34,17 +35,17 @@ LIBDIRS	=
 all: $(TARGETS)
 
 $(TARGETS1): libs $(OBJ_T1) 
-#	$(LINK) -o $(BINDIR)$(TARGETS1)  $(OBJ_T1) $(CFLAGS)
+#	$(LINK) -o $(BINDIR)$(TARGETS1)  $(OBJ_T1) $(LIBS)
 	$(AR)  $(BINDIR)$(TARGETS1)  $(OBJ_T1)
 $(TARGETS2): libs $(OBJ_T2) 
-	$(LINK) -o $(BINDIR)$(TARGETS2)  $(OBJ_T2) $(CFLAGS)
+	$(LINK) -o $(BINDIR)$(TARGETS2)  $(OBJ_T2) $(LIBS)
 libs:
 	@$(foreach BIND, $(LIBDIRS), \
             $(MAKE) -C $(BIND) -f Makefile --no-print-directory;)
 .cpp.o	:
-	$(CC)  $(INCS)  $< 
+	$(CC)  $(INCS) $(OPTIONS) $< 
 .c.o :
-	$(CC)  $(INCS)  $<
+	$(CC)  $(INCS) $(COPTIONS) $<
 clean:
 	@$(foreach BIND, $(LIBDIRS), \
             $(MAKE) -C $(BIND) -f Makefile clean --no-print-directory;)

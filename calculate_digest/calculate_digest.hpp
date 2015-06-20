@@ -327,7 +327,7 @@ public:
 #ifdef WIN32
         sprintf_s ( digt, 30, "%x", fsize );
 #else // gun
-        snprintf ( digt, 30, "%x", fsize );
+        snprintf ( digt, 30, "%lld", fisize );
 #endif      
 		enable = false;
 		return digt;
@@ -360,7 +360,7 @@ private:
 				return -1;
 			}
 
-			while ((bytes_read=(int)fread(buf, sizeof(char), 1024, from_fd))) 
+			while ((bytes_read=(int)fread(buf, sizeof(char), BUFSIZE, from_fd))) 
 			{
 				if (ferror(from_fd))
 				{
