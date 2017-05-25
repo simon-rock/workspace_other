@@ -14,7 +14,8 @@ namespace statistics
     #define UNIT "ms"
     #else
     #include <time.h>
-    #define UNIT "s"
+    #include <sys/time.h>
+    #define UNIT "us"
     #endif // WIN32
     static std::ofstream _df;
     static bool init = false;
@@ -27,12 +28,18 @@ namespace statistics
         {
             ss.str("");
             ss << "[" << fun << "][" << file << "] -- ";
-            elapse = time(NULL);
+            //elapse = time(NULL);
+            struct timeval s_start;
+            gettimeofday(&s_start, NULL);
+            elapse = s_start.tv_sec * 1000000LL + s_start.tv_usec;
             vaild = false;
         }
         void end()
         {
-            elapse = time(NULL) - elapse;
+            struct timeval s_start;
+            gettimeofday(&s_start, NULL);
+            elapse = s_start.tv_sec * 1000000LL + s_start.tv_usec - elapse;
+            //elapse = time(NULL) - elapse;
             vaild = true;
         }
         std::string output()
@@ -42,7 +49,7 @@ namespace statistics
             return ss.str();
         }
     private:
-        unsigned long elapse;
+        long long elapse;
         bool vaild;
         std::stringstream ss;
     };
