@@ -1,0 +1,15 @@
+[global]
+bs=4k
+gtod_reduce=1
+numjobs=1
+#conf=ceph-bluestore.conf # must point to a valid ceph configuration file
+thread
+[null]
+ioengine=libnull.so
+size=100g
+rw=readwrite
+norandommap
+time_based=0
+runtime=20s
+iodepth=2
+iodepth_batch_complete_max=2
