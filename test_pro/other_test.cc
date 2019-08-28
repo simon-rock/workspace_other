@@ -22,6 +22,11 @@ public:
         cout << "~B()" << endl;
     }
 };
+
+#include "ta1.h"
+
+using test::ta;
+
 int main(){
     B b;
     ofstream o;
@@ -32,5 +37,7 @@ int main(){
     }else
         cout << "error" << endl;
     cout <<  (1 << 9) << endl;   
-    
+
+    ta ta1;
+    ta1.ta_test();
 }
