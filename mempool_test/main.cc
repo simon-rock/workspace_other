@@ -33,9 +33,11 @@ void check_usage(mempool::pool_index_t ix)
   map<std::string,mempool::stats_t> m;
   pool->get_stats(&total, &m);
   size_t usage = pool->allocated_bytes();
+  size_t u_items = pool->allocated_items();
   size_t sum = 0;
   for (auto& p : m) {
-    sum += p.second.bytes;
+      std::cout << "check_usage detail " << p.first << "->" << p.second.bytes << std::endl;
+      sum += p.second.bytes;
   }
   if (sum != usage) {
       //ceph::TableFormatter jf;
@@ -45,7 +47,7 @@ void check_usage(mempool::pool_index_t ix)
       std::cout << "check_usage error" << std::endl;
   }
   else{
-      std::cout << "check_usage ok(" << sum << "/" << usage<<")"<<std::endl;
+      std::cout << "check_usage ok(" << sum << "/" << usage<< " | " << u_items<< ")"<<std::endl;
   }
       
   EXPECT_EQ(sum, usage);
@@ -138,6 +140,9 @@ void list_context()
 
     eq_elements(a,c);
     check_usage(mempool::osd::id);
+    a.clear();
+    b.clear();
+    c.clear();
   }
 }
 
@@ -146,7 +151,7 @@ void vector_context(){
     EXPECT_EQ(mempool::osd::allocated_bytes(), 0u);
     EXPECT_EQ(mempool::osd::allocated_items(), 0u);
     for (unsigned i = 0; i < 10; ++i) {
-        cout << i << "----------" << endl;
+        cout << i << "----------" << sizeof(int)<< endl;
         vector<int> a;
         mempool::osd::vector<int> b,c;
         eq_elements(a,b);
@@ -305,6 +310,71 @@ void string_test()
     }
     check_usage(mempool::osdmap::id);
 }
+
+struct i_type {
+  MEMPOOL_CLASS_HELPERS();
+  int a;
+  int b;
+    int c;
+  i_type() : a(0) {}
+  explicit i_type(int _a) : a(_a) {}
+    //  i_type(int _a) : a(_a) {}
+  friend inline bool operator<(const i_type& l, const i_type& r) {
+    return l.a < r.a;
+  }
+};
+MEMPOOL_DEFINE_OBJECT_FACTORY(i_type, i_type, osd);
+
+void type_size(){
+    i_type *o1 = new i_type();
+    i_type *o2 = new i_type(10);
+    i_type *o3 = new i_type(20);
+    check_usage(mempool::osd::id);
+    delete o1;
+    delete o2;
+    delete o3;
+    return;
+}
+void vector_obj_size(){
+    mempool::osd::vector<i_type> a;
+    check_usage(mempool::osd::id);
+    for (int i = 1; i < 10; i++){
+        cout << "i = " << i << endl;
+        a.push_back((i_type)i);
+        check_usage(mempool::osd::id);
+    }
+    return;
+}
+void list_obj_size(){
+    mempool::osd::list<i_type> a;
+    check_usage(mempool::osd::id);
+    for (int i = 1; i < 10; i++){
+        cout << "i = " << i << endl;
+        a.push_back((i_type)i);
+        check_usage(mempool::osd::id);
+    }
+    return;
+}
+void set_obj_size(){
+    mempool::osd::set<i_type> a;
+    check_usage(mempool::osd::id);
+    for (int i = 1; i < 10; i++){
+        cout << "i = " << i << endl;
+        a.insert((i_type)i);
+        check_usage(mempool::osd::id);
+    }
+    return;
+}
+void map_obj_size(){
+    mempool::osd::map<i_type,i_type> a;
+    check_usage(mempool::osd::id);
+    for (int i = 1; i < 10; i++){
+        cout << "i = " << i << endl;
+        a[(i_type)i] = (i_type)i;
+        check_usage(mempool::osd::id);
+    }
+    return;
+}
 int main()
 {
     mempool::set_debug_mode(true);
@@ -314,7 +384,17 @@ int main()
     list_context();
     cout << "set_context" << endl;
     set_context();
-    cout << "set_context" << endl;
+    cout << "set_factory" << endl;
     test_factory();
+    cout << "--i_type--" << endl;
+    type_size();
+    cout << "--vector--" << endl;
+    vector_obj_size();
+    cout << "--list--" << endl;
+    list_obj_size();
+    cout << "--set--" << endl;
+    set_obj_size();
+    cout << "--map--" << endl;
+    map_obj_size();
     return 0;
 }
