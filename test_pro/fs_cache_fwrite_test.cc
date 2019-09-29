@@ -41,9 +41,10 @@ int main(int argc, char** argv){
         cout << "err : " << errno << " " << strerror(errno) << endl;
     sleep(5);
     ret = fdatasync(fileno(fp));
+    // ret = fsync(fileno(fp));
+    cout << "after fync data, sleep 5s : " << ret << endl;
     if (ret < 0)
         cout << "err : " << errno << " " << strerror(errno) << endl;
-    cout << "after fync data, sleep 5s : " << ret << endl;
     gettimeofday(&tv_end, NULL);
     write_timeuse += 1000000 * (tv_end.tv_sec - tv_begin.tv_sec) + tv_end.tv_usec - tv_begin.tv_usec;
     return 0;
