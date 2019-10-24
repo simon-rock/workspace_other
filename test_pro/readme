@@ -1,0 +1,2 @@
+# compile frag_test.cc
+g++ -o main frag_test.cc  -I include/ -std=c++11
