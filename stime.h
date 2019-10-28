@@ -16,6 +16,7 @@ namespace statistics
     #include <time.h>
     #include <sys/time.h>
     #define UNIT "us"
+    #define __FUNCDNAME__ __func__
     #endif // WIN32
     static std::ofstream _df;
     static bool init = false;
@@ -24,7 +25,7 @@ namespace statistics
     public:
         time_cal():elapse(0), vaild(false){}
         ~time_cal(){}
-        void start(char* file, char* fun)
+        void start(const char* file, const char* fun)
         {
             ss.str("");
             ss << "[" << fun << "][" << file << "] -- ";
@@ -64,7 +65,7 @@ namespace statistics
     class scoped_res
     {
     public:
-        scoped_res(char* file, char* fun, T* t, bool dcal = false, std::ostream* o = NULL)
+        scoped_res(const char* file, const char* fun, T* t, bool dcal = false, std::ostream* o = NULL)
             :_m(NULL), _o(NULL), _clean(false), _dcal(dcal)
         {
             _m = t;
@@ -111,6 +112,7 @@ namespace statistics
         bool _dcal;
     };
 
+    
 #define STATISTICSTIME_NAME(LOG, NAME) statistics::scoped_res<statistics::time_cal> __FUNCTION__##stat (__FILE__, NAME, new statistics::time_cal, true, new std::ofstream(LOG, std::ios::app) );
 #define STATISTICSTIMECOUT_NAME(NAME) statistics::scoped_res<statistics::time_cal> __FUNCTION__##stat (__FILE__, NAME, new statistics::time_cal, true);
 
