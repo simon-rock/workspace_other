@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <list>
-
+#include <../stime.h>
 using namespace std;
 template<typename T, typename T2>
 class A{
@@ -147,6 +147,160 @@ bool CInode::get_dirfrags_under(frag_t fg, list<CDir*>& ls)
   return all;
 }
  */
+class frag_adv_test{
+public:
+    frag_adv_test():frag_cnt(1){
+    }
+    ~frag_adv_test(){
+    }
+    void init(int64_t cnt, int split_bit){
+        std::list<frag_t> fglist;
+        while (frag_cnt < cnt){
+            fglist.clear();
+            fragtree.get_leaves_under(frag_t(), fglist);
+            auto it = fglist.begin();
+            //if ((frag_cnt << 3) > cnt){
+            //  cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
+            //  ++it;
+            //}
+            for (; it != fglist.end();++it){
+                cout << *it << " " << it->value() << " " << it->bits() << endl;
+                fragtree.split(*it, 3);
+            }
+            frag_cnt = frag_cnt << 3;
+            cout << "current frag_cnt :" << frag_cnt << endl;
+        }
+        auto it = fglist.begin();
+        it;
+        cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
+        ++it;
+        cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
+        ++it;
+        std::list<frag_t> fglist_leaves;
+        for (; it != fglist.end();++it){
+            fragtree.get_leaves_under(*it, fglist_leaves);
+        }
+        for (auto &p : fglist_leaves)
+            dirfrags.insert(p);
+        cout << "show all leaves : " << dirfrags.size() << endl;
+        //for (auto it = dirfrags.begin(); it != dirfrags.end();++it){
+        //    cout << *it << " " << it->value() << " " << it->bits() << endl;
+        //}
+    }
+    bool get_dirfrags_under_old(frag_t fg, list<frag_t>& ls){
+        STATISTICSTIMECOUTDEFSINGLETHREAD
+        bool all = true;
+        std::list<frag_t> fglist;
+        fragtree.get_leaves_under(fg, fglist);
+        for (list<frag_t>::iterator p = fglist.begin(); p != fglist.end(); ++p)
+            if (dirfrags.count(*p))
+                //ls.push_back(dirfrags[*p]);
+                ls.push_back(*p);
+            else 
+                all = false;
+        
+        if (all)
+            return all;
+        
+        fragtree_t tmpdft;
+        tmpdft.force_to_leaf(fg);
+        for (auto &p : dirfrags) {
+            tmpdft.force_to_leaf(p);
+            if (fg.contains(p) && !fragtree.is_leaf(p))
+                ls.push_back(p);
+        }
+        
+        all = true;
+        tmpdft.get_leaves_under(fg, fglist);
+        for (const auto &p : fglist) {
+            if (!dirfrags.count(p)) {
+                all = false;
+                break;
+            }
+        }
+        
+        return all;
+    }
+    bool get_dirfrags_under(frag_t fg, list<frag_t>& ls){
+        STATISTICSTIMECOUTDEFSINGLETHREAD
+        bool all = false;
+        if (dirfrags.count(fg)){
+            all = true;
+            ls.push_back(fg);
+            return all;
+        }
+        for (auto &p : dirfrags){
+            //cout << p << endl;
+            //if (fg == p){
+            //    cout << fg << " = " << p << endl;
+            //    ls.push_back(p);
+            //    all = true;
+            //    break;
+            //}
+            //else
+            if (fg.bits() < p.bits() && fg.contains(p)){
+                // cout << fg << " have " << p << endl;
+                ls.push_back(p);
+            }
+            else if (fg.bits() > p.bits() && p.contains(fg)){
+                all = true;
+                cout << fg << " belong " << p << endl;
+                break;
+            }
+        }
+        if (!all && ls.size() > 0){
+            std::list<frag_t> leaves;
+            fragtree.get_leaves_under(fg, leaves);
+            uint64_t size = leaves.size();
+            leaves.clear();
+            for(auto &p : ls){
+                /*
+                if (fragtree.is_leaf(p))
+                    leaves.push_back(p);
+                    else*/
+                fragtree.get_leaves_under(p, leaves);
+            }
+            if (size == leaves.size())
+                all = true;
+            else if (size < leaves.size())
+                cout << __func__ << " error occurred (" << fg << ") leaves : "
+                        << size << "|" << leaves.size() << endl;    
+        }
+        return all;
+    }
+private:
+    fragtree_t fragtree;
+    int64_t frag_cnt;
+    set<frag_t> dirfrags;
+};
+    
+void frag_adv_v1(){
+    frag_adv_test ft;
+    ft.init(2000, 3);
+    list<frag_t> case_list;
+    case_list.push_back(frag_t(16773120, 12));// case 1 111111111111* 16773120 12     // last leaves
+    case_list.push_back(frag_t(16744448, 9));// case 2 111111111* 16744448 9         // parent of last leaves
+    case_list.push_back(frag_t(16515072, 6));// case 3 111111* 16515072 6
+    case_list.push_back(frag_t(0, 12));      // case 4 000000000000* 0 12            // no exist
+    case_list.push_back(frag_t(4096, 12));   // case 5 000000000001* 4096 12         // no exist
+    case_list.push_back(frag_t());           // case 6 root
+    case_list.push_back(frag_t(0, 6));       // case 7 
+    
+    
+    list<frag_t> ls;
+    bool ret = false;
+    frag_t case_cur = frag_t();
+    for (auto &p : case_list){
+        case_cur = p;ls.clear();
+        ret = ft.get_dirfrags_under(case_cur, ls);
+        cout << case_cur << " ret : " << ret << " size : " << ls.size() << endl;
+    }
+    for (auto &p : case_list){
+        case_cur = p;ls.clear();
+        ret = ft.get_dirfrags_under_old(case_cur, ls);
+        cout << case_cur << " ret : " << ret << " size : " << ls.size() << endl;
+    }
+}
 void frag_adv(){
     cout << "--frag_adv--" << endl;
     list<frag_t> dirfrags;
@@ -317,7 +471,7 @@ int main(){
     printf( ".%08llx %i %i\n", (long long unsigned)tmp, ceph_frag_value(tmp), ceph_frag_bits(tmp));
     */
     frag_test();
-    frag_adv();
+    frag_adv_v1();
     return 0;
 }
 
