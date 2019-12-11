@@ -153,32 +153,38 @@ public:
     }
     ~frag_adv_test(){
     }
-    void init(int64_t cnt, int split_bit){
+    void init(int64_t cnt, int split_bit, bool make_complete = true, bool balance = true){
         std::list<frag_t> fglist;
         while (frag_cnt < cnt){
             fglist.clear();
             fragtree.get_leaves_under(frag_t(), fglist);
             auto it = fglist.begin();
-            //if ((frag_cnt << 3) > cnt){
-            //  cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
-            //  ++it;
-            //}
+            if ((frag_cnt << 3) > cnt && !balance){
+              cout << "skip split for "<< *it << " " << it->value() << " " << it->bits() << endl;
+              ++it;
+            }
             for (; it != fglist.end();++it){
-                cout << *it << " " << it->value() << " " << it->bits() << endl;
+                // cout << *it << " " << it->value() << " " << it->bits() << endl;
                 fragtree.split(*it, 3);
             }
             frag_cnt = frag_cnt << 3;
             cout << "current frag_cnt :" << frag_cnt << endl;
         }
         auto it = fglist.begin();
-        it;
-        cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
-        ++it;
-        cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
-        ++it;
+        if (!make_complete){
+            cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
+            ++it;
+            cout << "skip "<< *it << " " << it->value() << " " << it->bits() << endl;
+            ++it;            
+        }
+
         std::list<frag_t> fglist_leaves;
-        for (; it != fglist.end();++it){
-            fragtree.get_leaves_under(*it, fglist_leaves);
+        if (make_complete){
+            fragtree.get_leaves_under(frag_t(), fglist_leaves);            
+        }else{
+            for (; it != fglist.end();++it){
+                fragtree.get_leaves_under(*it, fglist_leaves);    
+            }
         }
         for (auto &p : fglist_leaves)
             dirfrags.insert(p);
@@ -229,6 +235,7 @@ public:
             ls.push_back(fg);
             return all;
         }
+        uint64_t total = 0;
         for (auto &p : dirfrags){
             //cout << p << endl;
             //if (fg == p){
@@ -241,6 +248,7 @@ public:
             if (fg.bits() < p.bits() && fg.contains(p)){
                 // cout << fg << " have " << p << endl;
                 ls.push_back(p);
+                total += 1<<(24-p.bits());
             }
             else if (fg.bits() > p.bits() && p.contains(fg)){
                 all = true;
@@ -248,16 +256,17 @@ public:
                 break;
             }
         }
+        if(!all &&
+           (1<<(24-fg.bits())) == total)
+            all = true;
+        // all is not necessary expect when merge dir , so we cannot calc it every time
+        /*
         if (!all && ls.size() > 0){
             std::list<frag_t> leaves;
             fragtree.get_leaves_under(fg, leaves);
             uint64_t size = leaves.size();
             leaves.clear();
             for(auto &p : ls){
-                /*
-                if (fragtree.is_leaf(p))
-                    leaves.push_back(p);
-                    else*/
                 fragtree.get_leaves_under(p, leaves);
             }
             if (size == leaves.size())
@@ -265,18 +274,73 @@ public:
             else if (size < leaves.size())
                 cout << __func__ << " error occurred (" << fg << ") leaves : "
                         << size << "|" << leaves.size() << endl;    
-        }
+                        }*/
         return all;
+    }
+    void fragset_t_simplify_test(){
+        STATISTICSTIMECOUTDEFSINGLETHREAD
+        fragset_t tmp;
+        std::set<frag_t>::iterator p = dirfrags.begin();
+        while (p != dirfrags.end()) {
+            // for (auto &p : dirfrags){
+            tmp.insert(*p);
+            dirfrags.erase(p++);
+            if (p != dirfrags.end())
+                ++p;
+        }
+        p = dirfrags.begin();
+        while (p != dirfrags.end()) {
+            // for (auto &p : dirfrags){
+            tmp.insert(*p);
+            dirfrags.erase(p++);
+        }
+        cout << "after simplify : " << tmp.get().size() << endl;
+        for (auto &it : tmp.get()){
+            cout << it << " ";
+        }
+    }
+    void fragset_t_simplify_test_adv(){
+        STATISTICSTIMECOUTDEFSINGLETHREAD
+        fragset_t tmp;
+        std::set<frag_t>::iterator p = dirfrags.begin();
+        while (p != dirfrags.end()) {
+            // for (auto &p : dirfrags){
+            tmp.insert_raw(*p);
+            dirfrags.erase(p++);
+        }
+        /*
+        for (auto &it : tmp.get()){
+            cout << it << " ";
+            }*/
+        cout << endl;
+        tmp.simplify_adv();
+        cout << "after simplify : " << tmp.get().size() << endl;
+        for (auto &it : tmp.get()){
+            cout << it << " ";
+        }
+        cout << endl;
     }
 private:
     fragtree_t fragtree;
     int64_t frag_cnt;
     set<frag_t> dirfrags;
 };
-    
+
+void frag_adv_v2(){
+    frag_adv_test ft;
+    ft.init(500, 3, true, false);
+    ft.fragset_t_simplify_test();
+    frag_adv_test ft_adv;
+    ft_adv.init(500, 3, true, false);
+    ft_adv.fragset_t_simplify_test_adv();
+    // 32768 173994322 -> 63933us  2721
+    // 4096  2397699 -> 7545us     317
+    // 512   34037 ->  800         42
+    // 
+}
 void frag_adv_v1(){
     frag_adv_test ft;
-    ft.init(2000, 3);
+    ft.init(2000, 3, false);
     list<frag_t> case_list;
     case_list.push_back(frag_t(16773120, 12));// case 1 111111111111* 16773120 12     // last leaves
     case_list.push_back(frag_t(16744448, 9));// case 2 111111111* 16744448 9         // parent of last leaves
@@ -341,34 +405,45 @@ int frag_test() {
     cout << "start func : " << __func__ << endl;
     fragtree_t fragtree;
     frag_t root = frag_t();
+    cout << "=>split from leaf : " << root << endl;
     fragtree.split(root, 3);   
     // fragtree.split(root, 3);  // error, root must be leaf
     cout << fragtree << endl;
     // test diri->get_dirfrags_under(basefrag, srcfrags);   // get dir under the frag
     //      |__ dirfragtree.get_leaves_under(fg, fglist);
-    cout << "get leaf : " << root << " and split again"<< endl;
+    cout << "=>split from all leaves " << endl;
     std::list<frag_t> fglist_lv1;
     fragtree.get_leaves_under(root, fglist_lv1);
     frag_t lv1_1 = *(fglist_lv1.begin());
     for (auto it = fglist_lv1.begin(); it != fglist_lv1.end();++it){
-        cout << *it << endl;
+        cout << "spliting " << *it << endl;
         fragtree.split(*it, 3);
     }
-    cout << fragtree << endl;
-    cout << "get leaf : " << lv1_1 << endl;
+    cout << "=>current tree : " << fragtree << endl;
+    cout << "=>get leaves of " << lv1_1 << endl;
     std::list<frag_t> fglist_lv2;
     fragtree.get_leaves_under(lv1_1, fglist_lv2);
+    //fragtree.get_leaves_under(frag_t(2097152,3), fglist_lv2); 
     frag_t lv2_1 = *fglist_lv2.begin();
     for (auto it = fglist_lv2.begin(); it != fglist_lv2.end();++it){
         cout << *it << " " << it->value() << " " << it->bits()<< endl;
     }
     
-    cout << "get leaf : " << lv2_1<< endl;
+    cout << "=>get leaves of " << lv2_1<< endl;
     std::list<frag_t> fglist_lv3;
     fragtree.get_leaves_under(lv2_1, fglist_lv3);
     for (auto it = fglist_lv3.begin(); it != fglist_lv3.end();++it){
         cout << *it << " " << it->value() << " " << it->bits()<< endl;
     }
+
+    // importent opt
+    cout << "=>test operator []" << frag_t(2097152,3) << " ==> " << fragtree[frag_t(2097152,3).value()] << endl;
+    cout << "=>test operator []" << frag_t() << " ==> " << fragtree[frag_t().value()] << endl;
+    cout << "=>test operator []" << frag_t(0,12) << " ==> " << fragtree[frag_t(0,12).value()] << endl;
+    cout << "=>test get_sibling" << frag_t(2097152,3) << " ==> " << frag_t(2097152,3).get_sibling() << " " << frag_t(2097152,3).parent() << endl;
+    //cout << "=>test get_sibling" << frag_t() << " ==> " << frag_t().get_sibling() << endl;
+    cout << "=>test get_sibling" << frag_t(0,12) << " ==> " << frag_t(0,12).get_sibling() << " " << frag_t(0,12).parent() << endl;
+    cout << "=>test get_sibling" << frag_t(4096,12) << " ==> " << frag_t(4096,12).get_sibling() << " " << frag_t(4096,12).parent() << endl;
     // will get all leaf node
     // cout << "get leaf : " << root<< endl;
     // std::list<frag_t> fglist_all_ori;
@@ -376,7 +451,7 @@ int frag_test() {
     // for (auto it = fglist_all_ori.begin(); it != fglist_all_ori.end();++it){
     //    cout << *it << endl;
     // }
-    cout << "force_to_leaf : " << lv1_1<< endl;
+    cout << "=>tmptree force_to_leaf : " << lv1_1<< endl;
     fragtree_t tmpdft;
     tmpdft.force_to_leaf(lv1_1);
     cout << tmpdft << endl;
@@ -385,13 +460,16 @@ int frag_test() {
     for (auto it = fglist_all.begin(); it != fglist_all.end();++it)
         cout << *it << " " << it->value() << " " << it->bits()<< endl;
     fglist_all.clear();
-    cout << "and then force_to_leaf : " << lv2_1<< endl;
+    cout << "=>tmptree and then force_to_leaf : " << lv2_1 << "," << frag_t(262144,6) << "," << frag_t(2097152,6) << endl;
     tmpdft.force_to_leaf(lv2_1);
+    tmpdft.force_to_leaf(frag_t(262144,6));
+    tmpdft.force_to_leaf(frag_t(2097152,6));
+    cout << tmpdft << " " << fglist_all.size() << endl;
     tmpdft.get_leaves_under(frag_t(), fglist_all);
     for (auto it = fglist_all.begin(); it != fglist_all.end();++it)
         cout << *it << " " << it->value() << " " << it->bits()<< endl;
 
-    cout << "frag contain test " << lv2_1<< endl;
+    cout << "=>frag contain test " << lv2_1<< endl;
     if (lv1_1.contains(lv2_1))
         cout << " 1v1 have 2_1" << endl;
     return 0;
@@ -470,8 +548,11 @@ int main(){
     tmp = ceph_frag_make_child(0, 3, 2);
     printf( ".%08llx %i %i\n", (long long unsigned)tmp, ceph_frag_value(tmp), ceph_frag_bits(tmp));
     */
+    
     frag_test();
-    frag_adv_v1();
+    //2frag_adv();
+    //frag_adv_v1();
+    frag_adv_v2();
     return 0;
 }
 

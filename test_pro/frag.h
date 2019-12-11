@@ -89,7 +89,12 @@ class frag_t {
   frag_t() : _enc(0) { }
   frag_t(unsigned v, unsigned b) : _enc(ceph_frag_make(b, v)) { }
   frag_t(_frag_t e) : _enc(e) { }
-
+  bool operator<(frag_t b){
+    if (value() != b.value())
+      return value() < b.value();
+    else
+      return bits() < b.bits();
+  }
   // constructors
   void from_unsigned(unsigned e) { _enc = e; }
   
@@ -542,8 +547,6 @@ inline std::ostream& operator<<(std::ostream& out, const fragtree_t& ft)
   }
   return out << ")";
 }
-
-
 /**
  * fragset_t -- a set of fragments
  */
@@ -569,6 +572,9 @@ public:
     _set.insert(f);
     simplify();
   }
+  void insert_raw(frag_t f) {
+    _set.insert(f);
+  }
 
   void simplify() {
     while (1) {
@@ -587,6 +593,20 @@ public:
       }
       if (clean)
 	break;
+    }
+  }
+  void simplify_adv() {
+    auto p = _set.begin();
+    while (p != _set.end()) {
+      if (!p->is_root() &&
+	  _set.count(p->get_sibling())) {
+	  _set.erase(p->get_sibling());
+	  auto ret = _set.insert(p->parent());
+	  _set.erase(p);
+	  p = ret.first;
+      } else {
+	p++;
+      }
     }
   }
 };
