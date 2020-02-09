@@ -364,6 +364,13 @@ void frag_adv_v1(){
         ret = ft.get_dirfrags_under_old(case_cur, ls);
         cout << case_cur << " ret : " << ret << " size : " << ls.size() << endl;
     }
+    // case 1 6us     -> 1us  
+    // case 2 574us   -> 222us
+    // case 3 587us   -> 196us
+    // case 4 13641us -> 209us
+    // case 5 13819us -> 131us
+    // case 6 32637us -> 429us
+    // case 7 16087us -> 197us
 }
 void frag_adv(){
     cout << "--frag_adv--" << endl;
