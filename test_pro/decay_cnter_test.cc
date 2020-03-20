@@ -47,8 +47,8 @@ int main(){
     test_decay.hit(ts, 10000);
     for(int i = 0; i< 20;i++){
         ts.tv_sec += 5;
-        // test_decay.hit(ts, -1000);
-        // ts.tv_nsec += 900000000; // ok
+         test_decay.hit(ts, -1000);
+         ts.tv_nsec += 900000000; // ok
         cout << "now caps : " << test_decay.get(ts) << "  decay  " << "( "<< (double)(utime_t)ts<< ")" << endl;
     }
     return 0;

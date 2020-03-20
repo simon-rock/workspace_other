@@ -1,2 +1,5 @@
 # compile frag_test.cc
-g++ -o main frag_test.cc  -I include/ -std=c++11
+g++ -o main frag_test.cc  -I include/ -I./ -std=c++11
+
+# compile decay_cnter_test.cc
+g++ -o main decay_cnter_test.cc DecayCounter.cc
